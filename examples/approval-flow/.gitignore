@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+.cache
+.next
+out
+coverage
+*.tsbuildinfo
+.env
+.env*.local
+playwright-report
+test-results
+.playwright-browsers
+.DS_Store

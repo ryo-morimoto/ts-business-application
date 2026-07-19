@@ -1,0 +1,17 @@
+node_modules
+dist
+build
+.turbo
+.cache
+.next
+out
+coverage
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+playwright-report
+test-results
+.DS_Store
+# No root workspace yet; avoid committing a stray root lock
+/pnpm-lock.yaml
