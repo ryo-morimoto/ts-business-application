@@ -1,0 +1,11 @@
+node_modules
+dist
+.output
+.vinxi
+.tanstack
+.playwright-browsers
+test-results
+playwright-report
+*.tsbuildinfo
+.DS_Store
+debug-ce.mjs

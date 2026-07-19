@@ -1,0 +1,7 @@
+# Single-package example (no nested apps/packages).
+packages:
+  - "."
+
+allowBuilds:
+  esbuild: true
+  sharp: true
