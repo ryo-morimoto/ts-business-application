@@ -19,3 +19,9 @@
 ```text
 examples (implement & compare) → promote (explicit) → root template
 ```
+
+## Quality
+
+- Existing examples are a **runnable floor**, not a **quality ceiling**.
+- Do not clone another example’s layout as the default scaffold.
+- New examples should state 1–3 axes where they intentionally exceed prior ones.
