@@ -1,0 +1,33 @@
+{
+  "name": "draft-wizard",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3014",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3014",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=./.playwright-browsers playwright test",
+    "playwright:install": "PLAYWRIGHT_BROWSERS_PATH=./.playwright-browsers playwright install chromium"
+  },
+  "dependencies": {
+    "@tanstack/react-form": "^1.33.2",
+    "next": "^16.2.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
+  }
+}
