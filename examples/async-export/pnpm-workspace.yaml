@@ -1,0 +1,8 @@
+# Single-package example (no nested apps/packages).
+# workspace file exists only for allowBuilds / catalog-free root install.
+packages:
+  - "."
+
+allowBuilds:
+  esbuild: true
+  sharp: true
