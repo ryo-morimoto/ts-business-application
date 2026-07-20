@@ -1,0 +1,13 @@
+# Single-package example (no nested apps/packages).
+packages:
+  - "."
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+minimumReleaseAgeExclude:
+  - "@tanstack/react-start@1.168.32"
+  - "@tanstack/router-plugin@1.168.23"
+  - "@tanstack/start-plugin-core@1.171.24"
+  - '@tanstack/react-start-rsc@0.1.31'

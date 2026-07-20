@@ -31,6 +31,7 @@ README) — **not a quality ceiling**.
 | [`concurrent-edit`](./concurrent-edit/) | Line-item edit with optimistic concurrency | version OCC, conflict UX, TanStack Start family | done |
 | [`draft-wizard`](./draft-wizard/) | Multi-step create with draft + staged validation | draft/submit schemas, Gated Next, RSC+SA+RH → one deep module | done |
 | [`kobutsu-satei`](./kobutsu-satei/) | CMS 多層ルールで古物査定フォームを動的構築 | multi-layer evaluate, same evaluator dual surface, create pin + repin | done |
+| [`account-desk`](./account-desk/) | 取引先 list/detail/edit の高密度デスク UI + 自前 design system | 3-surface IA, dense aggregate, anti-slop tokens | done |
 
 ## Design archive: `draft-wizard` (implemented)
 
@@ -524,6 +525,7 @@ Do **not** fold these axes into existing examples as drive-by features.
 | 5 | `field-level-authz` | Same screen, different fields by role | field-level allow/mask, API drops fields (not UI-only hide), unmask audit | reserved |
 | 6 | `saved-search` | Saved queries coexisting with SoR filter limits | persisted query, SoR constraint honesty, optional facets | reserved |
 | 7 | `kobutsu-satei` | CMS ルール多層合成で古物査定フォームを動的構築 | multi-layer rule composition, same evaluator dual surface, rule version pin (create+repin) | **done** (see [`kobutsu-satei/`](./kobutsu-satei/)) |
+| 8 | `account-desk` | 取引先オペレーション（階層・複数住所/担当・与信・完備性・関連投影）の list/detail/edit | dense aggregate IA + anti-slop craft（flat 顧客禁止） | **done** (see [`account-desk/`](./account-desk/)) |
 
 ### Gap map (what these cover that done examples do not)
 
@@ -536,6 +538,7 @@ Do **not** fold these axes into existing examples as drive-by features.
 | Field-level authorization | `field-level-authz` |
 | Saved search + SoR limits | `saved-search` (thin alone; may attach to another theme later) |
 | Configuration-driven form / rule-as-data | `kobutsu-satei` (done) |
+| List / detail / edit information design (dense aggregate, anti-decoration) | `account-desk` (done) |
 
 `saved-search` may stay a thin standalone or land as a sub-feature of another
 example; the **slug and axis stay reserved** either way until decided at build time.
@@ -883,3 +886,458 @@ rollback: example ディレクトリ削除のみ（root 影響なし）
 - ブランド買取実務: コピー品は買取不可 / 「基準外」表現、シリアル・付属による査定分岐
 
 Scaffold 時は一次情報（条文・警察庁/警視庁）を README の「簡略である」注記とセットで再確認すること。
+
+---
+
+## Design archive: `account-desk` (charter — information design first)
+
+**Process gate（厳守）**
+
+```text
+1. タスク・情報設計・集約の複雑さ（本文）を合意する
+2. 画面ごとの情報配置・seed シナリオを合意する
+3. その後に限り scaffold（examples/account-desk/）
+```
+
+- **ディレクトリ作成・実装を先にしない。** flat な「名前+メール+住所1つ」顧客で一覧/詳細を切ると、実業務とそぐわず craft の練習にもならない。
+- 超過軸は UI craft だが、**車両ドメインは意図的に重い。** 軽量エンティティは non-goal。
+- 目的: AI が card 過多・装飾過多に流れがちな業務 UI の **正例** を、実運用に近い情報量で固定する。
+
+### `account-desk` — 取引先オペレーション・デスク
+
+| | |
+| --- | --- |
+| Intent | 一覧 → 詳細 → 編集（+ 新規）を横断する **業務フロント品質一式**。低認知負荷・高視認性・予測可能性 |
+| Domain | **販売取引先（売掛先）オペレーション** — 単票マスタではなく **階層・複数住所・複数担当・与信・完備性・関連集計** を持つ集約 |
+| Teaching core | 情報設計（何をどの面に載せるか）+ density language + anti-slop craft |
+| Stack (planned) | **TanStack family**（Start + Router + Query + Form + Table）— 情報設計合意後にピン留め確定 |
+| SoR (planned) | 自前 in-memory（関連集計も seed 投影。外部 ERP なし） |
+| Status | **done** — O1–O8 closed · stack TanStack family · in-example design system |
+| Field evidence | [docs/research/account-desk-field-evidence.md](../docs/research/account-desk-field-evidence.md)（SAP / NetSuite / D365 等） |
+
+**Exceeds prior on**
+
+| Axis | Intentional exceed |
+| --- | --- |
+| 3-surface information design | 一覧・詳細・編集で **同じ密度言語**。比較は table。詳細は section+表/dl。編集は **詳細と同じ区画** の複数セクション form |
+| Realistic aggregate density | flat CRUD ではなく、実デスクに必要な **入れ子と派生表示** を持つ（下記 Complexity sources） |
+| URL + return path honesty | 一覧条件の URL 復元・詳細往復維持。未保存離脱を仕様化 |
+| Anti-slop craft contract | ban リストを文書+token+E2E で固定（実装フェーズ） |
+
+**Why this gap exists**
+
+- 既存 example はドメイン契約が主。UI は runnable floor。
+- 薄い顧客エンティティの list/detail は「動く」が、**情報設計の難しさ（何を見せるか・何を畳むか）を再現しない。**
+- ガイド §3 の「タスク・情報設計」成果物が、example としてまだ無い。
+
+**Non-goals（意図的に載せない複雑さ）**
+
+| 載せない | 理由 / 正本 |
+| --- | --- |
+| 一括・page vs all・部分成功 | `bulk-reassign` |
+| 非同期ジョブ | `async-export` |
+| OCC 本格 | `concurrent-edit`（保存は last-write-wins 可） |
+| 多段 draft wizard | `draft-wizard`（新規は **1 ページ複数セクション**） |
+| ルール DSL | `kobutsu-satei` |
+| 監査イベント本格 | `audit-trail`（詳細の「最近の動き」は **seed 投影の読取専用表** に留める） |
+| フィールド権限マスク | `field-level-authz` |
+| 請求書発行・入金消込・与信審査 WF | 別システム想定。ここでは **結果とフラグ** だけ |
+| root UI kit / Storybook monorepo | promote は別判断 |
+| slop 対比モード | ban は文書のみ |
+
+#### Outcome (provisional)
+
+```text
+与信・担当・拠点・連絡窓口・データ欠損をまたぐ取引先オペレータが、
+一覧で「今動くべき相手」を拾い、詳細で判断材料をスキャンし、
+編集で複数区画を矛盾なく更新する業務を、
+装飾 card なし・予測可能なデスク UI で完遂できる。
+```
+
+---
+
+### Complexity sources（なぜ flat 顧客では足りないか）
+
+実業務の取引先デスクで認知負荷が上がるのは「フィールド数」ではなく次の **構造** である。本 example はこれを **必須** とする。
+
+| # | 複雑さの出所 | オペレータがすること | UI への要求 |
+| --- | --- | --- | --- |
+| C1 | **法人階層**（親会社・子・請求先） | グループ内のどの法人か見分ける | 一覧に親略称。詳細に親子リンク。編集で parent 変更の影響を明示 |
+| C2 | **役割付き住所が複数**（本社 / 請求先 / 出荷先） | 請求と納品の取り違え防止 | 詳細は **住所表**（role 列）。card 1 枚ずつ禁止 |
+| C3 | **役割付き担当が複数**（窓口・請求・現場） | 「誰に何を聞くか」 | 詳細・編集とも **担当表**。primary は1人制約 |
+| C4 | **商況フラグ束**（status × 与信停止 × 取引停止 × オンボ未完） | 出荷・請求してよいか一瞬で判断 | 一覧に **状態チップ列を1セルに畳む**（バッジ祭り禁止）。詳細ヘッダに主状態 |
+| C5 | **完備性（data readiness）** | マスタ不備の洗い出し | 派生 `readiness`（税号欠・請求先欠・担当0 等）。一覧フィルタ `incomplete`。詳細に **不足チェックリスト** |
+| C6 | **与信・支払条件**（金額・サイト・通貨・与信停止理由） | 高リスク項目の確認と訂正 | 詳細は scannable dl。編集は section「与信」。suspended/hold 時は **理由必須** |
+| C7 | **関連業務の集計投影**（未出荷・延滞・直近受注） | 詳細だけで「今の温度」を掴む | 詳細下部の **関連サマリ表**（読取専用 seed）。カード KPI 4 枚にしない |
+| C8 | **長い内部メモ + 短い公開注意** | 緊急注意 vs 経緯 | ヘッダ近傍に `alertNote`（短）。メモは折りたたみ or 下段 |
+| C9 | **長い正式名称・海外住所・欠損** | 列崩れ・空表示 | 一覧は truncate+title。欠損は `—` と意味のある空を区別 |
+| C10 | **セグメント・タグ（多値）** | キャンペーン対象の絞り込み | 一覧は主要セグメント1つ+件数。詳細はタグ行。編集は multi |
+
+**捨てた「見せかけの複雑さ」:** フィールドを雑に増やす、意味の薄い custom field 20 個、装飾用アクティビティフィード。
+
+---
+
+### Actors and tasks（情報設計の入力）
+
+| Actor | 頻度の高いタスク |
+| --- | --- |
+| `editor`（営業事務 / マスタメンテ） | 不備取引先の洗い出し、窓口・請求先修正、与信停止の理由付き更新、新規見込みの登録 |
+| `viewer`（参照のみ） | 問い合わせ時の「誰の何の法人か」「請求先はどこか」確認 |
+
+| Task id | タスク | 主面 | 判断材料（必須） |
+| --- | --- | --- | --- |
+| T1 | 今日触るべき取引先を拾う | 一覧 | status/hold、readiness、担当、親、延滞有無 |
+| T2 | この法人に請求・出荷してよいか確認 | 詳細 | 商況フラグ、与信、請求先住所、窓口 |
+| T3 | 請求先と納品先の取り違え確認 | 詳細 | 住所表（role） |
+| T4 | 連絡窓口の追加・primary 変更 | 編集 | 担当表 + primary 一意 |
+| T5 | 与信停止 / 再開 | 編集 | creditHold + reason、status 整合 |
+| T6 | マスタ不備を埋める | 詳細→編集 | readiness チェックリスト → 該当 section |
+| T7 | グループ内の別法人へ移る | 詳細 | 親・子リンク（一覧条件は維持したまま辿れると尚可） |
+| T8 | 新規見込み登録 | 新規 | 最小必須 + 後で埋める不備が readiness に出る |
+
+---
+
+### Ubiquitous language（用語）
+
+| 用語 | 意味 |
+| --- | --- |
+| 取引先（Account） | 売掛・出荷の相手となる法人単位。本 example の集約根 |
+| 親取引先 | グループ本社など。請求や与信が親側のこともある（教育上は **表示と parentId のみ**。与信ロールアップ計算は非目標） |
+| 住所ロール | `hq` / `bill_to` / `ship_to` |
+| 担当ロール | `primary` / `billing` / `operations` / `other` |
+| 商況（Trading state） | `status` と `creditHold` / `tradeSuspended` の合成表示 |
+| 完備性（Readiness） | 取引に必要なマスタが揃っているか。**派生**（保存しない or 保存しても server 再計算） |
+| 関連サマリ | 受注・延滞などの **読取専用投影**（他 SoR のふりをした seed） |
+
+---
+
+### Aggregate model（実装前の正本 — flat 禁止）
+
+```text
+Account {
+  id, code,                    # code 一意・人が言う識別子
+  legalName,                   # 正式名称（長い想定）
+  nameKana?,
+  tradeName?,                  # 略称・屋号（一覧の主表示に使いやすい）
+  status: prospect | active | suspended,
+  creditHold: boolean,         # true 時 creditHoldReason 必須
+  creditHoldReason?,
+  tradeSuspended: boolean,     # 出荷停止など（status と独立し得る）
+  tradeSuspendReason?,
+  ownerId,                     # 社内担当 stub
+  parentAccountId?,            # 階層
+  segment: enterprise | mid | smb | public,  # 主セグメント
+  tags: string[],              # 多値（上限 e.g. 8）
+  industry?,
+  countryCode,                 # e.g. JP
+  timezone?,                   # 表示用
+  taxId?,                      # 法人番号等。active では readiness に効く
+  currency: JPY | USD,         # 取引通貨
+  creditLimit,                 # currency と対（O4）
+  paymentTermsDays,            # 30/45/60…
+  invoiceEmail?,               # 請求送付。bill_to 住所と別概念（電子送付先）
+  alertNote?,                  # 短い注意（ヘッダ近傍）。一覧には出さない（O6）
+  internalMemo?,               # 長い経緯
+  addresses: Address[],        # 1..n  role 付き（SAP ship/bill の近似。Payer 独立エンティティは非目標）
+  contacts: Contact[],         # 0..n。子は親からコピーしない（NetSuite 同型）
+  siteCount?,                  # 拠点数など任意
+  # 監査メタ
+  createdAt, updatedAt, updatedBy,
+}
+
+# 派生（与信）— NetSuite Available Credit に相当。保存しない
+# availableCredit = creditLimit - accruedReceivables（OpsSummary or 別投影）
+
+
+Address {
+  id,
+  role: hq | bill_to | ship_to,
+  isDefaultForRole: boolean,   # 同じ role が複数あるとき default 1
+  label?,                      # 「東京DC」等
+  postalCode?, prefecture?, line1, line2?,
+  countryCode,
+}
+
+Contact {
+  id,
+  role: primary | billing | operations | other,
+  name, nameKana?,
+  email?, phone?,
+  department?,
+  isPrimary: boolean,          # 集約内で true は最大1（role と独立した「代表」でも可 — 下記 decision）
+}
+
+# 派生（server が計算。一覧・詳細の表示と incomplete フィルタに使う）
+AccountReadiness {
+  ready: boolean,
+  issues: { code, message, section }[],
+  # code 例: missing_tax_id | missing_bill_to | missing_ship_to
+  #          no_contact | no_primary_contact | missing_invoice_email
+  #          credit_hold_without_reason | active_without_bill_to
+}
+
+# 読取専用投影（seed。Account と join して詳細に出すだけ）
+AccountOpsSummary {
+  accountId,
+  openOrderCount,
+  openOrderAmount,
+  overdueInvoiceCount,
+  overdueAmount,
+  accruedReceivables,          # 与信消化額（available 計算用）
+  lastOrderAt?,
+  lastPaymentAt?,
+}
+
+AccountEvent {               # 直近 N 件。audit-trail の代替ではない
+  id, accountId, at, actorId,
+  kind: created | updated | status_changed | credit_hold_changed | note,
+  summary: string,           # 1行
+}
+```
+
+#### Invariants（server が強制）
+
+| ID | 規則 |
+| --- | --- |
+| I1 | `code` 一意 |
+| I2 | `addresses` は1件以上。`active` は `bill_to` を1件以上 |
+| I3 | 同一 `role` に `isDefaultForRole=true` は最大1。その role が1件なら自動 default |
+| I4 | `contacts` 内 `isPrimary=true` は最大1。1件以上いるとき primary 必須（readiness または hard fail — 実装時は **active は hard**） |
+| I5 | `creditHold=true` ⇒ `creditHoldReason` 非空 |
+| I6 | `status=suspended` ⇒ 理由フィールド（`statusReason` を追加するか tradeSuspend と共有 — 下記 open） |
+| I7 | `parentAccountId` は自己参照禁止。深さは表示上2段まで想定（深い木 UI は非目標） |
+| I8 | `tags` 上限・文字種を schema で制限 |
+
+#### 旧モデルの廃棄
+
+以前の charter にあった **単一 contact / 単一 address の flat Account** は **破棄**。情報設計の入力に使わない。
+
+---
+
+### 面ごとの情報設計
+
+#### 一覧 `/accounts` — 「拾う」面
+
+**目的:** T1。比較と絞り込み。詳細の代替にしない。
+
+| 領域 | 内容 | 載せない |
+| --- | --- | --- |
+| Toolbar | q、status、owner、segment、`incomplete`、`creditHold`、件数（確定） | KPI card 行 |
+| 表（必須列） | 取引先（tradeName/legalName の主表示+code 副）、商況、完備、親、担当、与信限度、延滞、更新日 | 住所全文、メモ全文、担当全員 |
+| 商況セル | status + hold/停止を **1セル内の短いテキスト or 最大2チップ** | 色だけ・アイコンだけ |
+| 完備セル | ready / 不備N | issue 全文（詳細へ） |
+| 延滞セル | OpsSummary の overdue 件数 or 金額（どちらか一方を主） | グラフ |
+| 行 Activate | 詳細へ。query は URL が正 | 行ごとの card |
+
+**URL query（予定）:**  
+`q` · `status` · `ownerId` · `segment` · `incomplete` · `creditHold` · `sort` · `page`
+
+**一覧状態コピー:** データなし / 検索0件 / 権限 / 障害を分離（ガイド §9）。
+
+#### 詳細 `/accounts/$id` — 「判断する」面
+
+**目的:** T2–T3, T6 の入口, T7。スクロールは許容。card の入れ子で「っぽく」しない。
+
+```text
+[ sticky または page header ]
+  戻る（一覧 query 維持） | 主表示名 + code | 商況 | 主操作: 編集
+  alertNote（あれば1行、警告色は token 1種）
+
+[ 識別・階層 ]     dl: legalName, kana, parent link, children table (id, name, status)
+[ 商況・与信 ]     dl: status, holds+reason, creditLimit, availableCredit（投影）, terms, currency, invoiceEmail, taxId
+[ 完備性 ]         issue リスト（section へのアンカー）。ready なら「取引マスタは揃っています」
+[ 住所 ]           table: role | default | label | 住所一行 | country
+[ 担当 ]           table: primary | role | name | email | phone | dept
+[ 分類 ]           segment, tags, industry, country, tz
+[ 関連サマリ ]     table 1行集計 or 定義リスト: 未出荷件数/金額, 延滞, 最終受注/入金
+[ 最近の動き ]     table: at | actor | summary（最大10行 seed）
+[ メモ ]           internalMemo（長文）。alert と分離
+[ メタ ]           updatedAt, updatedBy, createdAt
+```
+
+**詳細でやらないこと:** インライン編集の散在、関連エンティティのフル CRUD、KPI タイル4枚。
+
+#### 編集 `/accounts/$id/edit` ・ 新規 `/accounts/new` — 「矛盾なく書く」面
+
+**目的:** T4–T6, T8。**詳細と同じ section 順**（空間記憶）。1 ページ。modal 禁止。
+
+| Section | フィールド | 特記 |
+| --- | --- | --- |
+| 基本 | code（新規のみ or 変更ポリシー決定）、legalName、tradeName、kana、parent、owner、segment、tags… | code 変更可かは scaffold 前に固定（default: **新規のみ入力・以降不変**） |
+| 商況・与信 | status、holds、reasons、limit、terms、currency、taxId、invoiceEmail | hold と reason の条件付き必須 |
+| 住所 | 行の追加・削除・default。role 付き | **ネスト table/fieldset**。住所を card グリッドにしない |
+| 担当 | 行の追加・削除・primary | primary 一意を client+server |
+| 注意・メモ | alertNote、internalMemo | 長さ上限 |
+| フッター | error summary · Save · Cancel · dirty | summary から section/field へ |
+
+**新規の必須最小:** code, legalName, owner, country, currency, addresses≥1（hq 推奨）, status=prospect 可。  
+prospect は bill_to 欠を **許容** し readiness で示す。active 化は編集で I2 を満たす必要あり。
+
+#### 画面間の情報の上げ下げ
+
+| データ | 一覧 | 詳細 | 編集 |
+| --- | --- | --- | --- |
+| legalName / code / 商況 | ○ 主 | ○ ヘッダ | ○ |
+| readiness issues 全文 | 件数のみ | ○ | 間接（保存後に再計算） |
+| addresses[] | × | 表 | 表形式入力 |
+| contacts[] | ×（owner のみ社内担当） | 表 | 表形式入力 |
+| OpsSummary | 延滞の一点 | フル | ×（読取投影） |
+| events | × | 直近 | × |
+| internalMemo | × | 下段 | ○ |
+| alertNote | × or 記号1つ（任意） | ヘッダ | ○ |
+
+---
+
+### Seed シナリオ（実装前に「実例感」を固定）
+
+件数（目安 40–80）より **ストーリー種別** が必須。詳細ストーリーは field evidence の S-A〜S-H。
+
+| Seed | 姿（現場型） | 製品アナロジー | 一覧 | 詳細 |
+| --- | --- | --- | --- | --- |
+| **S-A** | 健全・sold/ship/bill が1法人に同居 | SAP デフォルト partner 割当 | 普通 | 住所2+・担当2+ · ready |
+| **S-B** | **請求は親・納品は子**（子に bill_to なし + alert） | Billing hierarchy: centralized payer 近似 | 子が incomplete | alert「請求は親」+ missing_bill_to |
+| **S-C** | active + **creditHold** + 延滞61日超 | D365 days overdue / NetSuite hold | hold·延滞が目立つ | 理由全文 + overdue 投影 |
+| **S-D** | 親は与信逼迫、**子は独立して取引可** | NetSuite: 親 limit に子を含めない | 行単位の商況（親赤≠子赤） | 親子で available が別 |
+| **S-E** | prospect・担当0・税号欠 | Prospect vs Customer Account の段差 | incomplete | readiness 複数 issue |
+| **S-F** | 正式名が極端に長い + ship_to 複数 default1 | 一覧主表示=tradeName | truncate | 住所表 default |
+| **S-G** | **延滞0なのに手動 hold**（クレーム調査） | D365 force credit hold | hold のみ | 理由と関連サマリが矛盾しないよう両方表示 |
+| **S-H** | 支払サイト長い + 条件変更 event | D365 terms change の気配 | terms は出さず | events に変更1行 |
+| S-I | suspended + statusReason | account status block | 商況 | 理由（O1） |
+| S-J | primary 不在の active | 連絡先不備 | incomplete | no_primary_contact |
+
+E2E 優先: **S-B, S-C, S-D, S-E**（階層・請求取り違え・hold・完備性）。
+
+---
+
+### Routes (planned)
+
+```text
+/accounts
+/accounts/new
+/accounts/$accountId
+/accounts/$accountId/edit
+```
+
+| 遷移 | 仕様 |
+| --- | --- |
+| 一覧 → 詳細 | 行 Activate |
+| 詳細 → 一覧 | 戻る。**一覧 query 維持** |
+| 詳細 → 子/親 | 詳細間移動。一覧 query は session か returnTo で保持 |
+| 詳細 → 編集 | 主 CTA。viewer は無し + API 拒否 |
+| 編集 → 詳細 | Save 後。Cancel は dirty 確認 |
+| readiness issue クリック | 編集の当該 section（hash or focus） |
+
+---
+
+### Full-spec inventory（面品質 — ドメイン充足が前提）
+
+| 面 | 必達 |
+| --- | --- |
+| 一覧 | 上記列・フィルタ・URL・状態区別・table-first |
+| 詳細 | 上記 section 一式。住所/担当は **表**。関連サマリと events は読取専用 |
+| 編集 | 同 section 順・ネスト集合の編集・error summary・条件付き必須 |
+| 横断 | token、ban リスト、キーボード主経路、viewer 拒否 |
+
+---
+
+### Craft contract（anti-slop）
+
+| 禁止 | 代わりに |
+| --- | --- |
+| 比較行の card grid | `<table>` |
+| 詳細の住所/担当を card の山 | `<table>` / 密な stack |
+| 上部 KPI card 4 枚 | 一覧は件数1行。詳細の関連は **1サマリブロック** |
+| 多重 shadow / gradient / 大きい radius | 1px border · focus ring |
+| 空/0件/エラー同一 art | 状態別コピー |
+| 複数 section 編集を modal に詰める | ページ |
+| flat 顧客で「完成」扱い | 本情報設計を満たすまで scaffold しない |
+
+---
+
+### Delivery seam (planned — 情報設計合意後)
+
+| 層 | 役割 |
+| --- | --- |
+| `features/accounts/model` | schema · invariants · readiness 純関数 · filter/sort/page · authorize |
+| `features/accounts/api` | memory SoR · ops/event seed · server fn |
+| `features/accounts/ui` | list / detail / form sections（**layout primitives 共有**） |
+| `routes/*` | URL・loader のみ |
+| `styles/` | density tokens |
+
+**二重実装禁止:** readiness・filter の意味は server（pure を共有してよい）。
+
+---
+
+### Contrast
+
+| Example | 差 |
+| --- | --- |
+| `concurrent-edit` | 明細 OCC。こちらは **集約の情報設計** |
+| `draft-wizard` | 段階 schema。こちらは **1ページ多 section + 入れ子集合** |
+| `fulfillment-desk` | 外部 SoR。こちらはマスタ集約 + 投影 |
+| `bulk-reassign` | 一括。こちらは単票の密度 |
+
+---
+
+### E2E（scaffold 解禁条件の一部）
+
+```yaml
+paths:
+  incomplete_filter: incomplete=1 → S2 系が残る → 詳細で issue → 編集で bill_to 追加 → ready
+  credit_hold: S3 の hold 理由が詳細で読める → 編集で解除と理由クリアの整合
+  hierarchy: S5 親詳細から子へ → 一覧に戻ると query 維持
+  nested_form: 担当 primary を2人にできない（client+server）
+  list_restore: 複合 filter → 詳細 → 戻る
+  empty_vs_zero: 別コピー
+  viewer: edit 直打ち拒否
+  keyboard: 主経路完遂
+critical_failure: |
+  flat 1 contact/1 address のみの実装、
+  一覧 card grid、
+  readiness なし、
+  住所/担当が card 山
+```
+
+**scaffold 解禁:** 下記 Decisions がクローズし、ユーザーが実装を明示したとき。
+
+---
+
+### Decisions closed
+
+| # | Topic | Decision |
+| --- | --- | --- |
+| 1 | プロセス | **情報設計 → 合意 → scaffold**。ディレクトリ先行禁止 |
+| 2 | ドメインの重さ | flat 顧客破棄。C1–C10 を必須の複雑さとする |
+| 3 | 成果物 | list + detail + edit + create の正例（slop 対比なし） |
+| 4 | 関連データ | OpsSummary / Event は **読取専用 seed 投影**（他 example の軸を侵食しない） |
+| 5 | 編集 UI | ページ・詳細と同 section 順・入れ子は表形式 |
+| 6 | 一括/OCC/async | 非目標 |
+| 7 | 認可 | editor / viewer |
+
+### Decisions closed（O1–O8 · stack · DS）
+
+| # | Topic | Decision |
+| --- | --- | --- |
+| O1 | suspended 理由 | **`statusReason` 独立**（creditHoldReason と別） |
+| O2 | primary | **`isPrimary` + role** |
+| O3 | code | **作成後不変** |
+| O4 | 与信金額 | **currency + 数値** |
+| O5 | 子の載せ方 | **詳細の子表のみ**（一覧は parent 列） |
+| O6 | alertNote 一覧 | **出さない**（詳細ヘッダのみ） |
+| O7 | availableCredit | **詳細のみ**（一覧は hold / 延滞を優先） |
+| O8 | Payer | **bill_to + invoiceEmail で近似**（独立 Payer エンティティなし） |
+| Stack | 配信 | **TanStack family**（Start + Router + Query + Form + Table）· 単一 package · 依存は実装時点の npm latest |
+| DS | 配置 | **example 内 `src/design-system/`**（root 共有 kit にしない）。Carbon productive density / PatternFly token 思想 / GOV.UK error summary を根拠に **自前 token + 薄い primitives**。Carbon/MUI/Radix 等の UI キットは **入れない** |
+| Styling | エンジン | **Tailwind CSS v4 + CSS 変数 token**（utility は token にマップ。装飾 shadow 禁止を token で強制） |
+
+調査正本: [account-desk-field-evidence.md](../docs/research/account-desk-field-evidence.md)。
+
+#### Research anchors（短縮）
+
+| テーマ | ソース |
+| --- | --- |
+| Partner functions（sold/ship/bill/payer） | [SAP Partner Determination Example](https://help.sap.com/docs/SAP_S4HANA_CLOUD/a376cd9ea00d476b96f18dea1247e6a5/0e71bd534f22b44ce10000000a174cb4.html) |
+| Subcustomer・与信非合算・contact 非コピー | [NetSuite Subcustomer](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_N1085616.html) |
+| Credit hold ルール（延滞・status・terms・force） | [MS Learn Credit holds](https://learn.microsoft.com/en-us/dynamics365/finance/accounts-receivable/cm-sales-order-credit-holds) |
+| Billing vs CRM hierarchy | [DealHub Billing Hierarchy](https://dealhub.io/glossary/billing-hierarchy/)（二次） |
+| Available credit / hold Auto | NetSuite schema + 二次解説（evidence ドキュメント参照） |

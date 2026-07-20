@@ -1,0 +1,108 @@
+@import "tailwindcss" source("../");
+@import "../design-system/tokens.css";
+
+@theme {
+  --color-desk-bg: var(--color-bg);
+  --color-desk-surface: var(--color-surface);
+  --color-desk-border: var(--color-border);
+  --color-desk-text: var(--color-text);
+  --color-desk-muted: var(--color-text-muted);
+  --color-desk-focus: var(--color-focus);
+  --color-desk-link: var(--color-link);
+  --color-desk-danger: var(--color-danger);
+  --color-desk-danger-bg: var(--color-danger-bg);
+  --color-desk-warning: var(--color-warning);
+  --color-desk-warning-bg: var(--color-warning-bg);
+  --color-desk-success: var(--color-success);
+  --color-desk-success-bg: var(--color-success-bg);
+  --color-desk-info: var(--color-info);
+  --color-desk-info-bg: var(--color-info-bg);
+  --font-sans: var(--font-family);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before {
+    box-sizing: border-box;
+    border-color: var(--color-border);
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+    font-family: var(--font-family);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  a {
+    color: var(--color-link);
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.92em;
+  }
+}
+
+/* Data table — comparable rows, not cards */
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.ds-table th,
+.ds-table td {
+  padding: var(--table-cell-py) var(--table-cell-px);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: var(--border-width) solid var(--color-border);
+  font-size: var(--font-size-body);
+}
+
+.ds-table th {
+  background: var(--table-header-bg);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-meta);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.ds-table tbody tr[data-clickable="true"] {
+  cursor: pointer;
+}
+
+.ds-table tbody tr[data-clickable="true"]:hover,
+.ds-table tbody tr[data-clickable="true"]:focus-within {
+  background: var(--color-info-bg);
+}
+
+.ds-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ds-truncate {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
